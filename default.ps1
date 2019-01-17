@@ -4,19 +4,19 @@ properties {
 	$output_directory = "$base_directory\build"
 	$dist_directory = "$base_directory\distribution"
 	$sln_file = "$src_directory\IdentityServer3.sln"
-	$target_config = "Release"
-	$framework_version = "v4.5"
-	$xunit_path = "$src_directory\packages\xunit.runner.console.2.0.0\tools\xunit.console.exe"
+	$target_config = "Release"	
+	# $xunit_path = "$src_directory\packages\xunit.runner.console.2.0.0\tools\xunit.console.exe"
 	$ilmerge_path = "$src_directory\packages\ILMerge.2.14.1208\tools\ILMerge.exe"
 	$nuget_path = "$base_directory\nuget.exe"
 
 	$buildNumber = 0;
-	$version = "2.6.3.0"
+	$version = "2.6.3.1"
 	$preRelease = $null
 }
 
-task default -depends Clean, RunTests, CreateNuGetPackage
-task appVeyor -depends Clean, CreateNuGetPackage
+# task default -depends Clean, RunTests, CreateNuGetPackage
+task default -depends Clean,CreateNuGetPackage
+# task appVeyor -depends Clean, CreateNuGetPackage
 
 task Clean {
 	rmdir $output_directory -ea SilentlyContinue -recurse
@@ -25,7 +25,7 @@ task Clean {
 }
 
 task Compile -depends UpdateVersion {
-	exec { msbuild /nologo /verbosity:q $sln_file /p:Configuration=$target_config /p:TargetFrameworkVersion=v4.5 }
+	exec { msbuild /nologo /verbosity:q $sln_file /p:Configuration=$target_config /p:TargetFrameworkVersion=v4.7.2 }
 
 	if ($LastExitCode -ne 0) {
         exit $LastExitCode
@@ -50,11 +50,11 @@ task UpdateVersion {
 	"[assembly: AssemblyFileVersion(""$assemblyFileVersion"")]" >> $versionAssemblyInfoFile
 }
 
-task RunTests -depends Compile {
-	$project = "IdentityServer3.Tests"
-	mkdir $output_directory\xunit\$project -ea SilentlyContinue
-	.$xunit_path "$src_directory\Tests\UnitTests\bin\Release\$project.dll"
-}
+# task RunTests -depends Compile {
+	# $project = "IdentityServer3.Tests"
+	# mkdir $output_directory\xunit\$project -ea SilentlyContinue
+	# .$xunit_path "$src_directory\Tests\UnitTests\bin\Release\$project.dll"
+# }
 
 
 task ILMerge -depends Compile {
@@ -69,8 +69,8 @@ task ILMerge -depends Compile {
 			}
 	}
 
-	New-Item $dist_directory\lib\net45 -Type Directory
-	Invoke-Expression "$ilmerge_path /targetplatform:v4 /internalize /allowDup /target:library /out:$dist_directory\lib\net45\IdentityServer3.dll $input_dlls"
+	New-Item $dist_directory\lib\net472 -Type Directory
+	Invoke-Expression "$ilmerge_path /targetplatform:v4 /internalize /allowDup /target:library /out:$dist_directory\lib\net472\IdentityServer3.dll $input_dlls"
 }
 
 task CreateNuGetPackage -depends ILMerge {
@@ -93,6 +93,6 @@ task CreateNuGetPackage -depends ILMerge {
 
 
 	copy-item $src_directory\IdentityServer3.nuspec $dist_directory
-	copy-item $output_directory\IdentityServer3.xml $dist_directory\lib\net45\
+	copy-item $output_directory\IdentityServer3.xml $dist_directory\lib\net472\
 	exec { . $nuget_path pack $dist_directory\IdentityServer3.nuspec -BasePath $dist_directory -OutputDirectory $dist_directory -version $packageVersion }
 }
